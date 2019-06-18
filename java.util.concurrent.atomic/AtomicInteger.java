@@ -36,7 +36,7 @@
 package java.util.concurrent.atomic;
 import java.util.function.IntUnaryOperator;
 import java.util.function.IntBinaryOperator;
-import [sun.misc.Unsafe](https://github.com/mzxl1987/openJDK8/blob/master/sun/misc/Unsafe.java);
+import sun.misc.Unsafe;  // https://github.com/mzxl1987/openJDK8/blob/master/sun/misc/Unsafe.java
 
 /**
  * An {@code int} value that may be updated atomically.  See the
