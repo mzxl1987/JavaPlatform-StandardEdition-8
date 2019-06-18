@@ -859,35 +859,35 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             }
         }
 
-        int rnd = ThreadLocalRandom.nextSecondarySeed();
-        if ((rnd & 0x80000001) == 0) { // test highest and lowest bits
+        int rnd = ThreadLocalRandom.nextSecondarySeed();                         // 随机生成边界
+        if ((rnd & 0x80000001) == 0) { // test highest and lowest bits           // 判断最高最低位是否为0
             int level = 1, max;
-            while (((rnd >>>= 1) & 1) != 0)
+            while (((rnd >>>= 1) & 1) != 0)                                      // 根据值生成层级
                 ++level;
             Index<K,V> idx = null;
-            HeadIndex<K,V> h = head;
-            if (level <= (max = h.level)) {
+            HeadIndex<K,V> h = head;                                             // 获取head节点
+            if (level <= (max = h.level)) {                                      // 如果生成的level <= maxLevel, 不需要加入新的层
                 for (int i = 1; i <= level; ++i)
-                    idx = new Index<K,V>(z, idx, null);
-            }
+                    idx = new Index<K,V>(z, idx, null);                          // 根据level生成新的索引列idx
+            }                                                                    // 如果生成的level > maxLevel, 加入新的层
             else { // try to grow by one level
-                level = max + 1; // hold in array and later pick the one to use
+                level = max + 1; // hold in array and later pick the one to use  // 层级 + 1
                 @SuppressWarnings("unchecked")Index<K,V>[] idxs =
                     (Index<K,V>[])new Index<?,?>[level+1];
                 for (int i = 1; i <= level; ++i)
-                    idxs[i] = idx = new Index<K,V>(z, idx, null);
+                    idxs[i] = idx = new Index<K,V>(z, idx, null);                 // 根据新的层级生成新的索引列数组idxs
                 for (;;) {
-                    h = head;
-                    int oldLevel = h.level;
-                    if (level <= oldLevel) // lost race to add level
-                        break;
-                    HeadIndex<K,V> newh = h;
-                    Node<K,V> oldbase = h.node;
+                    h = head;                                                     // 获得跳跃表头
+                    int oldLevel = h.level;                                       // 获取跳跃表原有登记
+                    if (level <= oldLevel) // lost race to add level              // 比较 level & oldlevel, 如果level <= oldLevel,退出循环
+                        break;                                                    // 因为 max = oldlevel, level = max + 1;表明有遗漏的race
+                    HeadIndex<K,V> newh = h;                                      // 保存newhead引用
+                    Node<K,V> oldbase = h.node;                                   // 获取oldHead.Node
                     for (int j = oldLevel+1; j <= level; ++j)
-                        newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j);
-                    if (casHead(h, newh)) {
-                        h = newh;
-                        idx = idxs[level = oldLevel];
+                        newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j);     // 生成新的head, newHead.right = idxs[j]
+                    if (casHead(h, newh)) {                                       // this.head == h ? this.head = newh : nothing;
+                        h = newh;                                                 // 获取newHead引用
+                        idx = idxs[level = oldLevel];                             // level = oldLevel; idx = idxs[level]
                         break;
                     }
                 }
@@ -898,38 +898,38 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                 for (Index<K,V> q = h, r = q.right, t = idx;;) {
                     if (q == null || t == null)
                         break splice;
-                    if (r != null) {
-                        Node<K,V> n = r.node;
+                    if (r != null) {                                            // right索引不为null
+                        Node<K,V> n = r.node;                                   // 获取right.Node
                         // compare before deletion check avoids needing recheck
-                        int c = cpr(cmp, key, n.key);
-                        if (n.value == null) {
-                            if (!q.unlink(r))
+                        int c = cpr(cmp, key, n.key);                           // key & right.node.key 比较
+                        if (n.value == null) {                                  // 表明n节点被标记为删除
+                            if (!q.unlink(r))                                   // 删除 right节点
                                 break;
-                            r = q.right;
-                            continue;
+                            r = q.right;                                        // right索引右移
+                            continue;                                           // continue
                         }
-                        if (c > 0) {
-                            q = r;
+                        if (c > 0) {                                            //当 key > right.node.key 
+                            q = r;                                              // right索引右移
                             r = r.right;
-                            continue;
+                            continue;                                           // continue
                         }
                     }
-
-                    if (j == insertionLevel) {
-                        if (!q.link(r, t))
-                            break; // restart
-                        if (t.node.value == null) {
-                            findNode(key);
-                            break splice;
+                    // 执行下面程序的条件 : rightIndex == null 或者 (right.node.value != null 且 key <= right.node.key)
+                    if (j == insertionLevel) {                                  // 当层与要插入的层相等的时候
+                        if (!q.link(r, t))                                      // 将t索引插入, from q > r to q > t > r
+                            break; // restart                                   // 如果插入失败了,重头再来
+                        if (t.node.value == null) {                             // value == null,可能被删除
+                            findNode(key);                                      // 查找key
+                            break splice;                                       // 退出循环
                         }
-                        if (--insertionLevel == 0)
-                            break splice;
+                        if (--insertionLevel == 0)                              // insertionLevel下移; 
+                            break splice;                                       // insertionLevel == 0 时, 已经是最底层了,退出
                     }
 
-                    if (--j >= insertionLevel && j < level)
-                        t = t.down;
-                    q = q.down;
-                    r = q.right;
+                    if (--j >= insertionLevel && j < level)                     // 当 insertionLevel <= j < level时 , 
+                        t = t.down;                                             // t 索引下移
+                    q = q.down;                                                 // q 索引下移
+                    r = q.right;                                                // right 索引右移
                 }
             }
         }
@@ -967,31 +967,31 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                 if (n == null)
                     break outer;
                 Node<K,V> f = n.next;
-                if (n != b.next)                    // inconsistent read
+                if (n != b.next)                    // inconsistent read        // 读取数据不一致
                     break;
-                if ((v = n.value) == null) {        // n is deleted
+                if ((v = n.value) == null) {        // n is deleted             // n节点已删除
                     n.helpDelete(b, f);
                     break;
                 }
-                if (b.value == null || v == n)      // b is deleted
+                if (b.value == null || v == n)      // b is deleted             // b节点被删除
                     break;
-                if ((c = cpr(cmp, key, n.key)) < 0)
-                    break outer;
-                if (c > 0) {
-                    b = n;
+                if ((c = cpr(cmp, key, n.key)) < 0)                             // key < n.key,说明原来n已经被删除了,此时的n = n.next
+                    break outer;                                                // 退出
+                if (c > 0) {                                                    // key > n.key,说明在b,n之间又插入了一个节点newNode
+                    b = n;                                                      // 此时 n = newNode, b.next = newNode, newNode.next = oldNode
                     n = f;
                     continue;
                 }
-                if (value != null && !value.equals(v))
-                    break outer;
-                if (!n.casValue(v, null))
-                    break;
-                if (!n.appendMarker(f) || !b.casNext(n, f))
-                    findNode(key);                  // retry via findNode
+                if (value != null && !value.equals(v))                           // value不为null, value != n.value
+                    break outer;                                                 // 退出
+                if (!n.casValue(v, null))                                        // 利用CAS设置n.value = null
+                    break;                                                       // return false,则退出
+                if (!n.appendMarker(f) || !b.casNext(n, f))                      // 插入mark节点失败, 或者跨越n节点失败
+                    findNode(key);                  // retry via findNode        // 使用findNode()查找,可能被删除
                 else {
-                    findPredecessor(key, cmp);      // clean index
-                    if (head.right == null)
-                        tryReduceLevel();
+                    findPredecessor(key, cmp);      // clean index               // 清除跳跃表中的索引
+                    if (head.right == null)                                      // 如果head.right索引为null的时候，需要降一级
+                        tryReduceLevel();                                        // 尝试降级
                 }
                 @SuppressWarnings("unchecked") V vv = (V)v;
                 return vv;
@@ -1024,15 +1024,15 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
         HeadIndex<K,V> h = head;
         HeadIndex<K,V> d;
         HeadIndex<K,V> e;
-        if (h.level > 3 &&
-            (d = (HeadIndex<K,V>)h.down) != null &&
-            (e = (HeadIndex<K,V>)d.down) != null &&
-            e.right == null &&
-            d.right == null &&
-            h.right == null &&
-            casHead(h, d) && // try to set
-            h.right != null) // recheck
-            casHead(d, h);   // try to backout
+        if (h.level > 3 &&                                                // level > 3时,才可以降级
+            (d = (HeadIndex<K,V>)h.down) != null &&                       // head.down 不能为 null 
+            (e = (HeadIndex<K,V>)d.down) != null &&                       // head.down.down 不能为 null
+            e.right == null &&                                            // head.down.down.right 为 null
+            d.right == null &&                                            // head.down.right 为 null
+            h.right == null &&                                            // head.right 为 null
+            casHead(h, d) && // try to set                                // CAS 交换 head
+            h.right != null) // recheck                                   // 如果head.right == null, 完成;
+            casHead(d, h);   // try to backout                            // 如果head.right != null, 还需要换回来
     }
 
     /* ---------------- Finding and removing first element -------------- */
