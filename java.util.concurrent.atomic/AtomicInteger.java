@@ -1,4 +1,4 @@
-```
+
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  *
@@ -37,7 +37,7 @@
 package java.util.concurrent.atomic;
 import java.util.function.IntUnaryOperator;
 import java.util.function.IntBinaryOperator;
-import [sun.misc.Unsafe;](https://github.com/mzxl1987/openJDK8/blob/master/sun/misc/Unsafe.java)
+import sun.misc.Unsafe;   // https://github.com/mzxl1987/openJDK8/blob/master/sun/misc/Unsafe.java
 
 /**
  * An {@code int} value that may be updated atomically.  See the
@@ -156,7 +156,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the previous value
      */
     public final int getAndIncrement() {
-        return unsafe.getAndAddInt(this, valueOffset, 1);
+        // https://github.com/mzxl1987/openJDK8/blob/master/classes/sun/misc/Unsafe.java ,line:1031
+        // getAndAddInt方法的具体实现:
+        //  1.使用getIntVolatile(this,valueOffset)方法，去堆中取相应的值
+        //  2.使用compareAndSwapInt(this,valueOffset,value,value+1)方法进行比较交换
+        return unsafe.getAndAddInt(this, valueOffset, 1);  
     }
 
     /**
@@ -184,6 +188,7 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the updated value
      */
     public final int incrementAndGet() {
+        //getAndAddInt()返回的是修改之前的值,所以这里需要+1操作
         return unsafe.getAndAddInt(this, valueOffset, 1) + 1;
     }
 
@@ -193,6 +198,7 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the updated value
      */
     public final int decrementAndGet() {
+        //getAndAddInt()返回的是修改之前的值,所以这里需要-1操作
         return unsafe.getAndAddInt(this, valueOffset, -1) - 1;
     }
 
@@ -335,4 +341,4 @@ public class AtomicInteger extends Number implements java.io.Serializable {
     }
 
 }
-```
+
