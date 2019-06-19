@@ -1,3 +1,5 @@
 # java.util.concurrent
-###### Queue队列
+## Queue
 ![uml](https://github.com/mzxl1987/JavaPlatform-StandardEdition-8/blob/master/images/Queue.png)
+## Map
+![](https://github.com/mzxl1987/JavaPlatform-StandardEdition-8/blob/master/images/java.util.concurrent.map.png)
