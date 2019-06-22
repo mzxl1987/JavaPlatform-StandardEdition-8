@@ -378,43 +378,43 @@ public abstract class AbstractQueuedSynchronizer
      * on the design of this class.
      */
     static final class Node {
-        /** Marker to indicate a node is waiting in shared mode */
-        static final Node SHARED = new Node();
+        /** Marker to indicate a node is waiting in shared mode */         
+        static final Node SHARED = new Node();                             // 表明节点处于共享模式等待
         /** Marker to indicate a node is waiting in exclusive mode */
-        static final Node EXCLUSIVE = null;
+        static final Node EXCLUSIVE = null;                                // 表明节点处于独占模式等待
 
         /** waitStatus value to indicate thread has cancelled */
-        static final int CANCELLED =  1;
+        static final int CANCELLED =  1;                                   // waitStatus = CANCELLED, 表明线程取消了
         /** waitStatus value to indicate successor's thread needs unparking */
-        static final int SIGNAL    = -1;
+        static final int SIGNAL    = -1;                                   // waitStatus = SIGNAL, 表明下next线程需要unparking
         /** waitStatus value to indicate thread is waiting on condition */
-        static final int CONDITION = -2;
+        static final int CONDITION = -2;                                   // waitStatus = CONDITION, 表明线程等待一个条件
         /**
          * waitStatus value to indicate the next acquireShared should
          * unconditionally propagate
          */
-        static final int PROPAGATE = -3;
+        static final int PROPAGATE = -3;                                    // waitStatus = PROPAGATE, 下一个共享被无条件的传送
 
         /**
          * Status field, taking on only the values:
-         *   SIGNAL:     The successor of this node is (or will soon be)
-         *               blocked (via park), so the current node must
-         *               unpark its successor when it releases or
+         *   SIGNAL:     The successor of this node is (or will soon be)    // 当当前节点node被释放或者取消,那么node.next的状态是waiting,
+         *               blocked (via park), so the current node must       // node.next需要被unpark/signal.
+         *               unpark its successor when it releases or           // 为了避免竞争,acquire()必须先表明他们需要一个signal
          *               cancels. To avoid races, acquire methods must
          *               first indicate they need a signal,
-         *               then retry the atomic acquire, and then,
+         *               then retry the atomic acquire, and then,           // 然后尝试原子获取, 如果失败了继续block
          *               on failure, block.
-         *   CANCELLED:  This node is cancelled due to timeout or interrupt.
-         *               Nodes never leave this state. In particular,
-         *               a thread with cancelled node never again blocks.
-         *   CONDITION:  This node is currently on a condition queue.
-         *               It will not be used as a sync queue node
-         *               until transferred, at which time the status
-         *               will be set to 0. (Use of this value here has
+         *   CANCELLED:  This node is cancelled due to timeout or interrupt.// node超时或者中断将会被取消
+         *               Nodes never leave this state. In particular,       // node将一直保持CANCELLED状态
+         *               a thread with cancelled node never again blocks.   // CANCELLED节点线程永远不会再次block
+         *   CONDITION:  This node is currently on a condition queue.       // node当前处于condition队列
+         *               It will not be used as a sync queue node           // node将不会作为异步队列的节点使用,知道被唤醒
+         *               until transferred, at which time the status        // 唤醒时,状态将会设置为0
+         *               will be set to 0. (Use of this value here has      // 该值不做任何事情, 制作简单的通讯
          *               nothing to do with the other uses of the
          *               field, but simplifies mechanics.)
-         *   PROPAGATE:  A releaseShared should be propagated to other
-         *               nodes. This is set (for head node only) in
+         *   PROPAGATE:  A releaseShared should be propagated to other      // 共享传播至其他节点
+         *               nodes. This is set (for head node only) in         // doReleaseShared()为了保证传播的延续
          *               doReleaseShared to ensure propagation
          *               continues, even if other operations have
          *               since intervened.
@@ -425,27 +425,27 @@ public abstract class AbstractQueuedSynchronizer
          * signal. So, most code doesn't need to check for particular
          * values, just for sign.
          *
-         * The field is initialized to 0 for normal sync nodes, and
-         * CONDITION for condition nodes.  It is modified using CAS
-         * (or when possible, unconditional volatile writes).
+         * The field is initialized to 0 for normal sync nodes, and       // 普通同步节点将设置 waitStatus = 0
+         * CONDITION for condition nodes.  It is modified using CAS       // condition node将设置 waitStatus = CONDITION
+         * (or when possible, unconditional volatile writes).             // waitStatus的修改使用了CompareAndSwap(A,B)
          */
-        volatile int waitStatus;
+        volatile int waitStatus;                     
 
         /**
-         * Link to predecessor node that current node/thread relies on
-         * for checking waitStatus. Assigned during enqueuing, and nulled
-         * out (for sake of GC) only upon dequeuing.  Also, upon
-         * cancellation of a predecessor, we short-circuit while
-         * finding a non-cancelled one, which will always exist
-         * because the head node is never cancelled: A node becomes
-         * head only as a result of successful acquire. A
-         * cancelled thread never succeeds in acquiring, and a thread only
-         * cancels itself, not any other node.
+         * Link to predecessor node that current node/thread relies on    // 链接至上一个当前节点/当前线程的上一个节点,依赖于检查waitStatus
+         * for checking waitStatus. Assigned during enqueuing, and nulled // enqueuing时分配, 
+         * out (for sake of GC) only upon dequeuing.  Also, upon          // dequeuing时设置为null, 被GC回收
+         * cancellation of a predecessor, we short-circuit while          // 为我们查找一个no-cancelled node提供了便利
+         * finding a non-cancelled one, which will always exist           // 因为no-cancelled node一直存在的，head永远不会是cancelled
+         * because the head node is never cancelled: A node becomes 
+         * head only as a result of successful acquire. A                 // 一个node要变成head,只有成功获取
+         * cancelled thread never succeeds in acquiring, and a thread only// 一个cancelled thread永远不会成功获取
+         * cancels itself, not any other node.                            // 一个thread只能取消自身,而不是其他的node
          */
         volatile Node prev;
 
         /**
-         * Link to the successor node that the current node/thread
+         * Link to the successor node that the current node/thread        // 功能类似于prev
          * unparks upon release. Assigned during enqueuing, adjusted
          * when bypassing cancelled predecessors, and nulled out (for
          * sake of GC) when dequeued.  The enq operation does not
@@ -460,19 +460,19 @@ public abstract class AbstractQueuedSynchronizer
         volatile Node next;
 
         /**
-         * The thread that enqueued this node.  Initialized on
+         * The thread that enqueued this node.  Initialized on           // 
          * construction and nulled out after use.
          */
         volatile Thread thread;
 
         /**
-         * Link to next node waiting on condition, or the special
-         * value SHARED.  Because condition queues are accessed only
-         * when holding in exclusive mode, we just need a simple
-         * linked queue to hold nodes while they are waiting on
-         * conditions. They are then transferred to the queue to
-         * re-acquire. And because conditions can only be exclusive,
-         * we save a field by using special value to indicate shared
+         * Link to next node waiting on condition, or the special        // 链接至waitingCondition的下一个节点,或者是SHARED值
+         * value SHARED.  Because condition queues are accessed only     // 只有当持有独占模式才可以访问ConditionQueue
+         * when holding in exclusive mode, we just need a simple         // 当他们waitingCondition的时候,我们只需要简单的
+         * linked queue to hold nodes while they are waiting on          // 队列来存放节点
+         * conditions. They are then transferred to the queue to         // 他们被调换至队列再次申请
+         * re-acquire. And because conditions can only be exclusive,     // 应为Condition是独占的
+         * we save a field by using special value to indicate shared     // 我们保存一个特殊的值用于表示SharedMode
          * mode.
          */
         Node nextWaiter;
@@ -491,7 +491,7 @@ public abstract class AbstractQueuedSynchronizer
          *
          * @return the predecessor of this node
          */
-        final Node predecessor() throws NullPointerException {
+        final Node predecessor() throws NullPointerException {                 // 返回上一节点
             Node p = prev;
             if (p == null)
                 throw new NullPointerException();
@@ -499,38 +499,38 @@ public abstract class AbstractQueuedSynchronizer
                 return p;
         }
 
-        Node() {    // Used to establish initial head or SHARED marker
+        Node() {    // Used to establish initial head or SHARED marker      // 用作初始化的head 或者 SHARED标记
         }
 
-        Node(Thread thread, Node mode) {     // Used by addWaiter
+        Node(Thread thread, Node mode) {     // Used by addWaiter           // 用作addWaiter
             this.nextWaiter = mode;
             this.thread = thread;
         }
 
-        Node(Thread thread, int waitStatus) { // Used by Condition
+        Node(Thread thread, int waitStatus) { // Used by Condition          // 用作Condition
             this.waitStatus = waitStatus;
             this.thread = thread;
         }
     }
 
     /**
-     * Head of the wait queue, lazily initialized.  Except for
-     * initialization, it is modified only via method setHead.  Note:
-     * If head exists, its waitStatus is guaranteed not to be
+     * Head of the wait queue, lazily initialized.  Except for             // 等待队列的head,lazy初始化
+     * initialization, it is modified only via method setHead.  Note:      // 除了初始化,只有setHead()方法可以修改headNode
+     * If head exists, its waitStatus is guaranteed not to be              // 如果head存在,head.waitStatus保证不能修改为CANCELLED
      * CANCELLED.
      */
     private transient volatile Node head;
 
     /**
-     * Tail of the wait queue, lazily initialized.  Modified only via
-     * method enq to add new wait node.
+     * Tail of the wait queue, lazily initialized.  Modified only via      // 等待队列的tail,lazy初始化
+     * method enq to add new wait node.                                    // 只有通过enq添加一个新的waitNode的时候才可以修改
      */
     private transient volatile Node tail;
 
     /**
      * The synchronization state.
      */
-    private volatile int state;
+    private volatile int state;                                           // 同步状态
 
     /**
      * Returns the current value of synchronization state.
@@ -580,17 +580,17 @@ public abstract class AbstractQueuedSynchronizer
      * @param node the node to insert
      * @return node's predecessor
      */
-    private Node enq(final Node node) {
-        for (;;) {
-            Node t = tail;
-            if (t == null) { // Must initialize
-                if (compareAndSetHead(new Node()))
-                    tail = head;
+    private Node enq(final Node node) {                                      // 插入Node
+        for (;;) {                                                           // 自旋
+            Node t = tail;                                                   // 获取队列尾部
+            if (t == null) { // Must initialize                              // 队列tail == null
+                if (compareAndSetHead(new Node()))                           // 设置 head
+                    tail = head;                                             // 设置队列tail
             } else {
-                node.prev = t;
-                if (compareAndSetTail(t, node)) {
-                    t.next = node;
-                    return t;
+                node.prev = t;                                               // 将node的前节点设置为tail
+                if (compareAndSetTail(t, node)) {                            // 将node设置为新的tail
+                    t.next = node;                                           // 将old tail下一个节点设置为node
+                    return t;                                                // 返回node的上一个节点,即old tail
                 }
             }
         }
@@ -602,19 +602,19 @@ public abstract class AbstractQueuedSynchronizer
      * @param mode Node.EXCLUSIVE for exclusive, Node.SHARED for shared
      * @return the new node
      */
-    private Node addWaiter(Node mode) {
-        Node node = new Node(Thread.currentThread(), mode);
+    private Node addWaiter(Node mode) {                                     // 为当前线程插入队列节点, 使用给定的mode
+        Node node = new Node(Thread.currentThread(), mode);                 // 根据指定的mode创建当前线程的node
         // Try the fast path of enq; backup to full enq on failure
-        Node pred = tail;
-        if (pred != null) {
-            node.prev = pred;
-            if (compareAndSetTail(pred, node)) {
-                pred.next = node;
-                return node;
+        Node pred = tail;                                                   // 获得tail
+        if (pred != null) {                                                 // tail不为空
+            node.prev = pred;                                               // node.prev = oldTail
+            if (compareAndSetTail(pred, node)) {                            // 将node设置为新的tail
+                pred.next = node;                                           // oldTail.next = node
+                return node;                                                // 返回当前节点
             }
         }
-        enq(node);
-        return node;
+        enq(node);                                                          // 插入队列
+        return node;                                                        // 返回当前节点
     }
 
     /**
@@ -635,15 +635,15 @@ public abstract class AbstractQueuedSynchronizer
      *
      * @param node the node
      */
-    private void unparkSuccessor(Node node) {
+    private void unparkSuccessor(Node node) {                             // 唤醒node.next节点,如果存在node.next的话
         /*
          * If status is negative (i.e., possibly needing signal) try
          * to clear in anticipation of signalling.  It is OK if this
          * fails or if status is changed by waiting thread.
          */
-        int ws = node.waitStatus;
-        if (ws < 0)
-            compareAndSetWaitStatus(node, ws, 0);
+        int ws = node.waitStatus;                                         // 获取waitStatus
+        if (ws < 0)                                                       // 如果waitStatus < 0
+            compareAndSetWaitStatus(node, ws, 0);                         // 设置waitStatus = 0,表示普通同步节点
 
         /*
          * Thread to unpark is held in successor, which is normally
@@ -651,26 +651,26 @@ public abstract class AbstractQueuedSynchronizer
          * traverse backwards from tail to find the actual
          * non-cancelled successor.
          */
-        Node s = node.next;
-        if (s == null || s.waitStatus > 0) {
+        Node s = node.next;                                                // 获取node.next节点
+        if (s == null || s.waitStatus > 0) {                               // 如果s为null,或者 s.waitStatus 为 CANCELLED:1
             s = null;
-            for (Node t = tail; t != null && t != node; t = t.prev)
-                if (t.waitStatus <= 0)
-                    s = t;
+            for (Node t = tail; t != null && t != node; t = t.prev)        // 从tail开始查找
+                if (t.waitStatus <= 0)                                     // 查找 not CANCELLED节点
+                    s = t;                                                 // 获取节点
         }
-        if (s != null)
-            LockSupport.unpark(s.thread);
+        if (s != null)                                                     // s节点不为null
+            LockSupport.unpark(s.thread);                                  // 唤醒s.thread
     }
 
     /**
-     * Release action for shared mode -- signals successor and ensures
-     * propagation. (Note: For exclusive mode, release just amounts
-     * to calling unparkSuccessor of head if it needs signal.)
+     * Release action for shared mode -- signals successor and ensures   // SHARE模式的释放操作 -- 唤醒后面的节点,并且延续
+     * propagation. (Note: For exclusive mode, release just amounts      // PS:对于独占模式来说,如果他需要唤醒,只能唤醒head后面的
+     * to calling unparkSuccessor of head if it needs signal.)           // unpark Node
      */
-    private void doReleaseShared() {
+    private void doReleaseShared() {                                       // 释放Shared
         /*
-         * Ensure that a release propagates, even if there are other
-         * in-progress acquires/releases.  This proceeds in the usual
+         * Ensure that a release propagates, even if there are other      // 即便有其他的进程在申请/释放,也要确保释放的延续
+         * in-progress acquires/releases.  This proceeds in the usual     // 如果他需要被唤醒,这是常用的方式来唤醒head后面的节点
          * way of trying to unparkSuccessor of head if it needs
          * signal. But if it does not, status is set to PROPAGATE to
          * ensure that upon release, propagation continues.
@@ -680,17 +680,17 @@ public abstract class AbstractQueuedSynchronizer
          * fails, if so rechecking.
          */
         for (;;) {
-            Node h = head;
-            if (h != null && h != tail) {
-                int ws = h.waitStatus;
-                if (ws == Node.SIGNAL) {
-                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
-                        continue;            // loop to recheck cases
-                    unparkSuccessor(h);
+            Node h = head;                                                 // 获取head
+            if (h != null && h != tail) {                                  // head not null & head != tail
+                int ws = h.waitStatus;                                     // 获取head.waitStatus
+                if (ws == Node.SIGNAL) {                                   // 如果head.waitStatus == Node.SIGNAL
+                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))       // 尝试head.waitStatus 设置为 0,设置为正常节点
+                        continue;            // loop to recheck cases      // 如果失败了,重新尝试
+                    unparkSuccessor(h);                                    // 唤醒head.next节点
                 }
-                else if (ws == 0 &&
-                         !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
-                    continue;                // loop on failed CAS
+                else if (ws == 0 &&                                        // head.waitStatus是普通同步节点
+                         !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))   // 将状态设置为PROPAGATE
+                    continue;                // loop on failed CAS         // 失败了重新开始
             }
             if (h == head)                   // loop if head changed
                 break;
@@ -748,8 +748,8 @@ public abstract class AbstractQueuedSynchronizer
 
         // Skip cancelled predecessors
         Node pred = node.prev;
-        while (pred.waitStatus > 0)
-            node.prev = pred = pred.prev;
+        while (pred.waitStatus > 0)                                    // 如果此时waitStatus == CANCELLED
+            node.prev = pred = pred.prev;                              // 跳过node.prev.waitStatus == CANCELLED节点
 
         // predNext is the apparent node to unsplice. CASes below will
         // fail if not, in which case, we lost race vs another cancel
@@ -759,27 +759,27 @@ public abstract class AbstractQueuedSynchronizer
         // Can use unconditional write instead of CAS here.
         // After this atomic step, other Nodes can skip past us.
         // Before, we are free of interference from other threads.
-        node.waitStatus = Node.CANCELLED;
+        node.waitStatus = Node.CANCELLED;                              // 设置node节点等待状态为CANCELLED
 
         // If we are the tail, remove ourselves.
-        if (node == tail && compareAndSetTail(node, pred)) {
-            compareAndSetNext(pred, predNext, null);
+        if (node == tail && compareAndSetTail(node, pred)) {           // 如果node == tail,将node.prev设置为新tail
+            compareAndSetNext(pred, predNext, null);                   // 将node.prev.next 设置为 null
         } else {
             // If successor needs signal, try to set pred's next-link
             // so it will get one. Otherwise wake it up to propagate.
             int ws;
-            if (pred != head &&
-                ((ws = pred.waitStatus) == Node.SIGNAL ||
-                 (ws <= 0 && compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) &&
-                pred.thread != null) {
-                Node next = node.next;
-                if (next != null && next.waitStatus <= 0)
-                    compareAndSetNext(pred, predNext, next);
+            if (pred != head &&                                         // node.prev != head
+                ((ws = pred.waitStatus) == Node.SIGNAL ||               // waitStatus = SIGNAL
+                 (ws <= 0 && compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) &&   // 设置 waitStatus = SIGNAL
+                pred.thread != null) {                                             //node.prev.thread != null
+                Node next = node.next;                                             
+                if (next != null && next.waitStatus <= 0)               // node.next不为null,next.waitStatus != normal/CANCELLED
+                    compareAndSetNext(pred, predNext, next);            // 跳过node,设置 node.prev.next = node.next
             } else {
-                unparkSuccessor(node);
+                unparkSuccessor(node);                                  // 唤醒node
             }
 
-            node.next = node; // help GC
+            node.next = node; // help GC                                // 形成环状, 利于GC回收
         }
     }
 
