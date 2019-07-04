@@ -187,9 +187,9 @@ public class CyclicBarrier {
      * Called only while holding lock.
      */
     private void breakBarrier() {                                     // 打破栅栏
-        generation.broken = true;
-        count = parties;
-        trip.signalAll();
+        generation.broken = true;                                     // broken设置为 true,表示打破栅栏
+        count = parties;                                              // 重置资源数量为parties
+        trip.signalAll();                                             // 唤醒所有等待的thread
     }
 
     /**
@@ -198,62 +198,62 @@ public class CyclicBarrier {
     private int dowait(boolean timed, long nanos)
         throws InterruptedException, BrokenBarrierException,
                TimeoutException {
-        final ReentrantLock lock = this.lock;
-        lock.lock();
+        final ReentrantLock lock = this.lock;                         
+        lock.lock();                                                              // 持有锁
         try {
             final Generation g = generation;
 
-            if (g.broken)
+            if (g.broken)                                                         // ????
                 throw new BrokenBarrierException();
 
-            if (Thread.interrupted()) {
-                breakBarrier();
-                throw new InterruptedException();
+            if (Thread.interrupted()) {                                           // 线程中断
+                breakBarrier();                                                   // 打破 barray
+                throw new InterruptedException();                                 // 并抛出Interrupted异常
             }
 
-            int index = --count;
-            if (index == 0) {  // tripped                                         // 冲破栅栏
+            int index = --count;                                                  // 资源数量减少
+            if (index == 0) {  // tripped                                         // 此时count == 0,表示可以打开barry
                 boolean ranAction = false;
                 try {
                     final Runnable command = barrierCommand;                      // 获取任务
-                    if (command != null)
+                    if (command != null)                                          // runnable不为null时
                         command.run();                                            // 执行任务
-                    ranAction = true;
+                    ranAction = true;                                             // 如果run()不抛出异常, 执行这句. 如果抛出异常则执行inally{}
                     nextGeneration();                                             // 设置下一次栅栏
                     return 0;
                 } finally {
                     if (!ranAction)
-                        breakBarrier();
+                        breakBarrier();                                            // 执行出现异常, 打破栅栏
                 }
             }
 
             // loop until tripped, broken, interrupted, or timed out
-            for (;;) {                                                           // 伙伴没有到期,则等待
+            for (;;) {                                                           // 伙伴没有到,则等待
                 try {
-                    if (!timed)
-                        trip.await();                                            // 等待被最后一个到的小伙伴唤醒
-                    else if (nanos > 0L)
-                        nanos = trip.awaitNanos(nanos);
+                    if (!timed)                                                  // 如果没有设置超时,则无尽等待
+                        trip.await();                                            // 直到调用trip.signalAll()唤醒
+                    else if (nanos > 0L)                                         // 设置限时
+                        nanos = trip.awaitNanos(nanos);                          // 如果超时, 抛出Interrupted异常
                 } catch (InterruptedException ie) {
-                    if (g == generation && ! g.broken) {
-                        breakBarrier();                                          // 等待出现异常，打破栅栏
-                        throw ie;
+                    if (g == generation && ! g.broken) {                         // 如果是同一个阀, 并且没有打开
+                        breakBarrier();                                          // 打开阀门唤醒所有进程
+                        throw ie;                                                // 抛出异常
                     } else {
                         // We're about to finish waiting even if we had not
                         // been interrupted, so this interrupt is deemed to
                         // "belong" to subsequent execution.
-                        Thread.currentThread().interrupt();
+                        Thread.currentThread().interrupt();                       // 否则currentThread产生中断
                     }
                 }
 
-                if (g.broken)
-                    throw new BrokenBarrierException();
+                if (g.broken)                                                     // 阀 is broken
+                    throw new BrokenBarrierException();                           // 抛出异常
 
-                if (g != generation)
+                if (g != generation)                                              // 阀 已经被设置 nextGeneration()
                     return index;
 
-                if (timed && nanos <= 0L) {
-                    breakBarrier();
+                if (timed && nanos <= 0L) {                                       // 超时
+                    breakBarrier();                                               // break barry
                     throw new TimeoutException();
                 }
             }
