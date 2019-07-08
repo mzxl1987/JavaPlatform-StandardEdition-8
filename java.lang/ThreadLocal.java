@@ -123,7 +123,7 @@ public class ThreadLocal<T> {
      *
      * @return the initial value for this thread-local
      */
-    protected T initialValue() {
+    protected T initialValue() {                                                    // 该方法需要重写,根据自己的需求初始化值
         return null;
     }
 
@@ -451,7 +451,7 @@ public class ThreadLocal<T> {
          * @param key the thread local object
          * @param value the value to be set
          */
-        private void set(ThreadLocal<?> key, Object value) {
+        private void set(ThreadLocal<?> key, Object value) {            // 保存ThreadLocal & value
 
             // We don't use a fast path as with get() because it is at
             // least as common to use set() to create new entries as
@@ -460,27 +460,27 @@ public class ThreadLocal<T> {
 
             Entry[] tab = table;
             int len = tab.length;
-            int i = key.threadLocalHashCode & (len-1);
+            int i = key.threadLocalHashCode & (len-1);                  // 根据hashCode & (len-1)掩码,获得下标
 
-            for (Entry e = tab[i];
+            for (Entry e = tab[i];                                      // 根据下标获取Entry
                  e != null;
                  e = tab[i = nextIndex(i, len)]) {
-                ThreadLocal<?> k = e.get();
+                ThreadLocal<?> k = e.get();                             // 根据Entry获取ThreadLocal
 
-                if (k == key) {
-                    e.value = value;
-                    return;
+                if (k == key) {                                         // Threadlocal相等
+                    e.value = value;                                    // 更新entry.value
+                    return;                                             // 返回
                 }
 
-                if (k == null) {
-                    replaceStaleEntry(key, value, i);
-                    return;
+                if (k == null) {                                        // Theadlocal为null
+                    replaceStaleEntry(key, value, i);                   // 替换原有的Entry
+                    return;                                             // 返回
                 }
             }
 
-            tab[i] = new Entry(key, value);
-            int sz = ++size;
-            if (!cleanSomeSlots(i, sz) && sz >= threshold)
+            tab[i] = new Entry(key, value);                              // Threadlocal不存在,则添加新的Entry
+            int sz = ++size;                                             // 长度++
+            if (!cleanSomeSlots(i, sz) && sz >= threshold)               // 清理slots, 并判断长度是否大于阙值
                 rehash();
         }
 
@@ -531,8 +531,8 @@ public class ThreadLocal<T> {
             for (int i = prevIndex(staleSlot, len);
                  (e = tab[i]) != null;
                  i = prevIndex(i, len))
-                if (e.get() == null)
-                    slotToExpunge = i;
+                if (e.get() == null)                                        // Entry.value == null
+                    slotToExpunge = i;                                      // 获得废弃的entry下标
 
             // Find either the key or trailing null slot of run, whichever
             // occurs first
