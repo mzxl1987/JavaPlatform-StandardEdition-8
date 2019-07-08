@@ -58,21 +58,21 @@ import java.lang.annotation.AnnotationFormatError;
  * @author      Nakul Saraiya
  */
 public final class Constructor<T> extends Executable {
-    private Class<T>            clazz;
-    private int                 slot;
-    private Class<?>[]          parameterTypes;
-    private Class<?>[]          exceptionTypes;
-    private int                 modifiers;
-    // Generics and annotations support
+    private Class<T>            clazz;                                       // this.class
+    private int                 slot;                                        // 槽
+    private Class<?>[]          parameterTypes;                              // this变量类型
+    private Class<?>[]          exceptionTypes;                              // this异常类型
+    private int                 modifiers;                                   // 修饰符
+    // Generics and annotations support                                      // 泛型 & 注解的支持
     private transient String    signature;
     // generic info repository; lazily initialized
-    private transient ConstructorRepository genericInfo;
-    private byte[]              annotations;
-    private byte[]              parameterAnnotations;
+    private transient ConstructorRepository genericInfo;                     // 泛型注册信息, lazy初始化
+    private byte[]              annotations;                                 // this注解
+    private byte[]              parameterAnnotations;                        // 变量注解
 
     // Generics infrastructure
     // Accessor for factory
-    private GenericsFactory getFactory() {
+    private GenericsFactory getFactory() {                                   // 泛型工厂
         // create scope and factory
         return CoreReflectionFactory.make(this, ConstructorScope.make(this));
     }
@@ -90,14 +90,14 @@ public final class Constructor<T> extends Executable {
         return genericInfo; //return cached repository
     }
 
-    private volatile ConstructorAccessor constructorAccessor;
+    private volatile ConstructorAccessor constructorAccessor;                // 构造器的访问
     // For sharing of ConstructorAccessors. This branching structure
     // is currently only two levels deep (i.e., one root Constructor
     // and potentially many Constructor objects pointing to it.)
     //
     // If this branching structure would ever contain cycles, deadlocks can
     // occur in annotation code.
-    private Constructor<T>      root;
+    private Constructor<T>      root;                                        // 根
 
     /**
      * Used by Excecutable for annotation sharing.
