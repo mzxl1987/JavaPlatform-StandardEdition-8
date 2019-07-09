@@ -341,7 +341,7 @@ public class TreeMap<K,V>
      */
     final Entry<K,V> getEntry(Object key) {
         // Offload comparator-based version for sake of performance
-        if (comparator != null)
+        if (comparator != null)                                            // 利用comparator接口比较，获取相应的数
             return getEntryUsingComparator(key);
         if (key == null)
             throw new NullPointerException();
@@ -349,12 +349,12 @@ public class TreeMap<K,V>
             Comparable<? super K> k = (Comparable<? super K>) key;
         Entry<K,V> p = root;
         while (p != null) {
-            int cmp = k.compareTo(p.key);
-            if (cmp < 0)
+            int cmp = k.compareTo(p.key);                                  // 利用key自身实现的compare接口比较
+            if (cmp < 0)                                                   // key < p.key, 左移
                 p = p.left;
-            else if (cmp > 0)
+            else if (cmp > 0)                                              // key > p.key, 右移
                 p = p.right;
-            else
+            else                                                           // key == p.key, 返回
                 return p;
         }
         return null;
@@ -369,16 +369,16 @@ public class TreeMap<K,V>
     final Entry<K,V> getEntryUsingComparator(Object key) {
         @SuppressWarnings("unchecked")
             K k = (K) key;
-        Comparator<? super K> cpr = comparator;
+        Comparator<? super K> cpr = comparator;                                 // 比较的接口
         if (cpr != null) {
             Entry<K,V> p = root;
             while (p != null) {
-                int cmp = cpr.compare(k, p.key);
-                if (cmp < 0)
+                int cmp = cpr.compare(k, p.key);                                // 根据比较的结果左右移动节点
+                if (cmp < 0)                                                    // k < p.key, 左移
                     p = p.left;
-                else if (cmp > 0)
+                else if (cmp > 0)                                               // k > p.key, 右移
                     p = p.right;
-                else
+                else                                                            // k == p.key, 返回
                     return p;
             }
         }
@@ -534,10 +534,10 @@ public class TreeMap<K,V>
      */
     public V put(K key, V value) {
         Entry<K,V> t = root;
-        if (t == null) {
+        if (t == null) {                                               // 无节点
             compare(key, key); // type (and possibly null) check
 
-            root = new Entry<>(key, value, null);
+            root = new Entry<>(key, value, null);                      // 创建根节点
             size = 1;
             modCount++;
             return null;
@@ -545,41 +545,41 @@ public class TreeMap<K,V>
         int cmp;
         Entry<K,V> parent;
         // split comparator and comparable paths
-        Comparator<? super K> cpr = comparator;
-        if (cpr != null) {
+        Comparator<? super K> cpr = comparator;                        // 获取比较的接口
+        if (cpr != null) {                                             // 实现comparator接口
             do {
                 parent = t;
-                cmp = cpr.compare(key, t.key);
-                if (cmp < 0)
-                    t = t.left;
-                else if (cmp > 0)
-                    t = t.right;
-                else
+                cmp = cpr.compare(key, t.key);                         // key & t.key进行比较
+                if (cmp < 0)                                           // key < t.key
+                    t = t.left;                                        // t 左移
+                else if (cmp > 0)                                      // key > t.key
+                    t = t.right;                                       // t 右移
+                else                                                   // key == t.key 设置value
                     return t.setValue(value);
             } while (t != null);
         }
         else {
-            if (key == null)
+            if (key == null)                                           // key == null, 抛出NullPointer异常
                 throw new NullPointerException();
             @SuppressWarnings("unchecked")
-                Comparable<? super K> k = (Comparable<? super K>) key;
+                Comparable<? super K> k = (Comparable<? super K>) key; // 利用key自身的comparable接口实现比较
             do {
                 parent = t;
                 cmp = k.compareTo(t.key);
-                if (cmp < 0)
+                if (cmp < 0)                                            // key < t.key, 左移
                     t = t.left;
-                else if (cmp > 0)
+                else if (cmp > 0)                                       // key > t.key, 右移
                     t = t.right;
-                else
+                else                                                    // key == t.key, 更新value
                     return t.setValue(value);
             } while (t != null);
         }
-        Entry<K,V> e = new Entry<>(key, value, parent);
-        if (cmp < 0)
+        Entry<K,V> e = new Entry<>(key, value, parent);                 // 新节点
+        if (cmp < 0)                                                    // 小于当前节点,添加到左节点
             parent.left = e;
-        else
+        else                                                            // 大于当前节点,添加到右节点
             parent.right = e;
-        fixAfterInsertion(e);
+        fixAfterInsertion(e);                                           // 修正RED, BLACK
         size++;
         modCount++;
         return null;
@@ -2214,7 +2214,7 @@ public class TreeMap<K,V>
     }
 
     /** From CLR */
-    private void rotateLeft(Entry<K,V> p) {
+    private void rotateLeft(Entry<K,V> p) {                       // 左旋,按照程序画出操作的流程
         if (p != null) {
             Entry<K,V> r = p.right;
             p.right = r.left;
@@ -2233,7 +2233,7 @@ public class TreeMap<K,V>
     }
 
     /** From CLR */
-    private void rotateRight(Entry<K,V> p) {
+    private void rotateRight(Entry<K,V> p) {                      // 右旋,按照程序画出操作的流程
         if (p != null) {
             Entry<K,V> l = p.left;
             p.left = l.right;
