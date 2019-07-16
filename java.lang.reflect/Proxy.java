@@ -393,13 +393,13 @@ public class Proxy implements java.io.Serializable {
                                          ClassLoader loader,
                                          Class<?>... interfaces)
     {
-        SecurityManager sm = System.getSecurityManager();
+        SecurityManager sm = System.getSecurityManager();                           // 获取安全管理器
         if (sm != null) {
-            ClassLoader ccl = caller.getClassLoader();
-            if (VM.isSystemDomainLoader(loader) && !VM.isSystemDomainLoader(ccl)) {
-                sm.checkPermission(SecurityConstants.GET_CLASSLOADER_PERMISSION);
+            ClassLoader ccl = caller.getClassLoader();                              // 获取类加载器
+            if (VM.isSystemDomainLoader(loader) && !VM.isSystemDomainLoader(ccl)) { // 判断call.classloader & loader的域
+                sm.checkPermission(SecurityConstants.GET_CLASSLOADER_PERMISSION);   // 检查classloader的权限
             }
-            ReflectUtil.checkProxyPackageAccess(ccl, interfaces);
+            ReflectUtil.checkProxyPackageAccess(ccl, interfaces);                   // 检查代理包的访问
         }
     }
 
@@ -705,38 +705,38 @@ public class Proxy implements java.io.Serializable {
                                           InvocationHandler h)
         throws IllegalArgumentException
     {
-        Objects.requireNonNull(h);
+        Objects.requireNonNull(h);                                        // 判断InvocationHandler不为空
 
-        final Class<?>[] intfs = interfaces.clone();
-        final SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            checkProxyAccess(Reflection.getCallerClass(), loader, intfs);
+        final Class<?>[] intfs = interfaces.clone();                      // 克隆所有接口
+        final SecurityManager sm = System.getSecurityManager();           // 获取安全管理
+        if (sm != null) {                                                 // 安全管理存在
+            checkProxyAccess(Reflection.getCallerClass(), loader, intfs); // 检查代理的访问权限
         }
 
         /*
          * Look up or generate the designated proxy class.
          */
-        Class<?> cl = getProxyClass0(loader, intfs);
+        Class<?> cl = getProxyClass0(loader, intfs);                      // 利用ProxyClassFactory加载代理类
 
         /*
          * Invoke its constructor with the designated invocation handler.
          */
         try {
             if (sm != null) {
-                checkNewProxyPermission(Reflection.getCallerClass(), cl);
+                checkNewProxyPermission(Reflection.getCallerClass(), cl);  // 检查新代理的权限
             }
 
             final Constructor<?> cons = cl.getConstructor(constructorParams);
             final InvocationHandler ih = h;
-            if (!Modifier.isPublic(cl.getModifiers())) {
-                AccessController.doPrivileged(new PrivilegedAction<Void>() {
+            if (!Modifier.isPublic(cl.getModifiers())) {                     // 判断修饰符是否是public, 如果不是需要修改访问权限
+                AccessController.doPrivileged(new PrivilegedAction<Void>() { // 特权操作
                     public Void run() {
-                        cons.setAccessible(true);
+                        cons.setAccessible(true);                            // 修改constuctor的访问权限为 accessible = true
                         return null;
                     }
                 });
             }
-            return cons.newInstance(new Object[]{h});
+            return cons.newInstance(new Object[]{h});                         // 通过构造函数实例化对象
         } catch (IllegalAccessException|InstantiationException e) {
             throw new InternalError(e.toString(), e);
         } catch (InvocationTargetException e) {
